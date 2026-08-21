@@ -1,0 +1,167 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return true;
+    }
+
+    function getAuthUid() {
+      return request.auth != null ? request.auth.uid : 'public-operator';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Type validation helpers
+    function isValidTicket(data) {
+      return data.date is string && data.date.size() > 0 && data.date.size() <= 30
+          && data.time is string && data.time.size() > 0 && data.time.size() <= 20
+          && data.timestamp is int
+          && data.requester is string && data.requester.size() > 0 && data.requester.size() <= 100
+          && data.employeeId is string && data.employeeId.size() > 0 && data.employeeId.size() <= 50
+          && data.department is string && data.department.size() > 0 && data.department.size() <= 100
+          && data.machine is string && data.machine.size() > 0 && data.machine.size() <= 100
+          && data.issue is string && data.issue.size() > 0 && data.issue.size() <= 1000
+          && data.workType is string && (data.workType == 'urgent' || data.workType == 'improvement' || data.workType == 'pm' || data.workType == 'repair')
+          && data.status is string && (data.status == 'pending' || data.status == 'waiting_confirm' || data.status == 'completed')
+          && data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() <= 128
+          && data.get('team', '') is string && data.get('team', '').size() <= 10;
+    }
+
+    function isValidRepairDetails(details) {
+      return details == null || (
+             details.technician is string && details.technician.size() > 0 && details.technician.size() <= 100
+          && details.cause is string && details.cause.size() <= 1000
+          && details.solution is string && details.solution.size() > 0 && details.solution.size() <= 2000
+          && details.prevention is string && details.prevention.size() <= 2000
+          && details.diagnosisTime is string
+          && details.partsReplaced is bool
+          && details.partNumber is string && details.partNumber.size() <= 200
+          && details.startTime is string && details.startTime.size() <= 50
+          && details.endTime is string && details.endTime.size() <= 50
+          && details.finishedAt is string && details.finishedAt.size() <= 20
+          && details.finishTimestamp is int
+          && details.duration is string && details.duration.size() <= 50
+          && details.durationMs is int
+      );
+    }
+
+    function isValidAssignment(data) {
+      return data.technicianName is string && data.technicianName.size() > 0 && data.technicianName.size() <= 100
+          && data.taskDetails is string && data.taskDetails.size() > 0 && data.taskDetails.size() <= 2000
+          && data.deadline is string && data.deadline.size() > 0 && data.deadline.size() <= 100
+          && data.status is string && (data.status == 'assigned' || data.status == 'in_progress' || data.status == 'completed')
+          && data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() <= 128
+          && data.createdAt is int
+          && data.get('ticketId', '') is string
+          && data.get('acceptedAt', '') is string
+          && data.get('actionsTaken', '') is string
+          && data.get('completedAt', '') is string;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Connection validation match
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    // Main collection match
+    match /artifacts/{appId}/public/data/tickets/{ticketId} {
+      allow read: if isSignedIn() && isValidId(appId);
+      
+      allow create: if isSignedIn() 
+                    && isValidId(appId)
+                    && isValidId(ticketId)
+                    && isValidTicket(incoming())
+                    && incoming().createdBy == getAuthUid()
+                    && incoming().status == 'pending'
+                    && incoming().repairDetails == null;
+
+      allow update: if isSignedIn()
+                    && isValidId(appId)
+                    && isValidId(ticketId)
+                    && isValidTicket(incoming())
+                    && isValidRepairDetails(incoming().get('repairDetails', null))
+                    && (
+                      // Action 1: Requester edits their own pending ticket
+                      (existing().createdBy == getAuthUid() 
+                       && existing().status == 'pending'
+                       && incoming().createdBy == getAuthUid()
+                       && incoming().status == 'pending'
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['employeeId', 'department', 'machine', 'issue', 'workType', 'team']))
+                      
+                      ||
+                      
+                      // Action 2: Technician records a repair, moving status to waiting_confirm
+                      (existing().status == 'pending'
+                       && incoming().status == 'waiting_confirm'
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'repairDetails']))
+                      
+                      ||
+                      
+                      // Action 3: Technician/Admin edits an existing repair
+                      ((existing().status == 'waiting_confirm' || existing().status == 'completed')
+                       && incoming().status == existing().status
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['repairDetails']))
+
+                      ||
+
+                      // Action 4: Requester/Admin confirms a repair, moving status to completed
+                      (existing().status == 'waiting_confirm'
+                       && incoming().status == 'completed'
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+                    );
+
+      allow delete: if isSignedIn()
+                    && isValidId(appId)
+                    && isValidId(ticketId);
+    }
+
+    match /artifacts/{appId}/public/data/assignments/{assignmentId} {
+      allow read: if isSignedIn() && isValidId(appId);
+      
+      allow create: if isSignedIn() 
+                    && isValidId(appId)
+                    && isValidId(assignmentId)
+                    && isValidAssignment(incoming());
+
+      allow update: if isSignedIn()
+                    && isValidId(appId)
+                    && isValidId(assignmentId)
+                    && isValidAssignment(incoming());
+
+      allow delete: if isSignedIn()
+                    && isValidId(appId)
+                    && isValidId(assignmentId);
+    }
+
+    match /artifacts/{appId}/public/data/machines/{machineId} {
+      allow read: if isSignedIn() && isValidId(appId);
+      allow write: if isSignedIn() && isValidId(appId) && isValidId(machineId);
+    }
+
+    match /artifacts/{appId}/public/data/maintenance_logs/{logId} {
+      allow read: if isSignedIn() && isValidId(appId);
+      allow write: if isSignedIn() && isValidId(appId) && isValidId(logId);
+    }
+
+    match /artifacts/{appId}/public/data/parts/{partId} {
+      allow read: if isSignedIn() && isValidId(appId);
+      allow write: if isSignedIn() && isValidId(appId) && isValidId(partId);
+    }
+  }
+}

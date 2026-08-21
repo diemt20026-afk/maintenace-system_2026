@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "ticket": {
+      "title": "Ticket",
+      "description": "A maintenance ticket detailing an issue, work type, and repair status.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "Date of the report." },
+        "time": { "type": "string", "description": "Time of the report." },
+        "timestamp": { "type": "integer", "description": "Numeric timestamp of the creation." },
+        "requester": { "type": "string", "description": "Name of the person requesting maintenance." },
+        "employeeId": { "type": "string", "description": "Employee ID of the requester." },
+        "department": { "type": "string", "description": "Department of the requester." },
+        "machine": { "type": "string", "description": "Name or ID of the machine." },
+        "issue": { "type": "string", "description": "Description of the machine issue." },
+        "workType": { "type": "string", "enum": ["urgent", "improvement", "pm", "repair"], "description": "The category of maintenance work." },
+        "team": { "type": "string", "enum": ["A", "B", "C", "Office"], "description": "The shift/team of the requester." },
+        "status": { "type": "string", "enum": ["pending", "waiting_confirm", "completed"], "description": "The progress status of the ticket." },
+        "createdBy": { "type": "string", "description": "UID of the user who created this ticket." },
+        "repairDetails": {
+          "type": "object",
+          "properties": {
+            "technician": { "type": "string" },
+            "cause": { "type": "string" },
+            "solution": { "type": "string" },
+            "prevention": { "type": "string" },
+            "diagnosisTime": { "type": "string" },
+            "partsReplaced": { "type": "boolean" },
+            "partNumber": { "type": "string" },
+            "startTime": { "type": "string" },
+            "endTime": { "type": "string" },
+            "finishedAt": { "type": "string" },
+            "finishTimestamp": { "type": "integer" },
+            "duration": { "type": "string" },
+            "durationMs": { "type": "integer" }
+          },
+          "description": "Details of the maintenance repair."
+        }
+      },
+      "required": ["date", "time", "timestamp", "requester", "employeeId", "department", "machine", "issue", "workType", "status", "createdBy"]
+    },
+    "assignment": {
+      "title": "Assignment",
+      "description": "A task assignment created by an Admin/Supervisor for a technician.",
+      "type": "object",
+      "properties": {
+        "technicianName": { "type": "string", "description": "The technician assigned to this task." },
+        "taskDetails": { "type": "string", "description": "Details of the assigned work." },
+        "deadline": { "type": "string", "description": "The deadline/due date of the task." },
+        "status": { "type": "string", "enum": ["assigned", "in_progress", "completed"], "description": "Current status of the assignment." },
+        "ticketId": { "type": "string", "description": "Optional linked maintenance ticket ID." },
+        "acceptedAt": { "type": "string", "description": "Optional ISO timestamp when the technician accepted the work." },
+        "actionsTaken": { "type": "string", "description": "Details of what actions were taken to complete the task." },
+        "completedAt": { "type": "string", "description": "Optional ISO timestamp when the task was completed." },
+        "createdBy": { "type": "string", "description": "UID of the user who created this assignment." },
+        "createdAt": { "type": "integer", "description": "Timestamp when this assignment was created." }
+      },
+      "required": ["technicianName", "taskDetails", "deadline", "status", "createdBy", "createdAt"]
+    },
+    "machine": {
+      "title": "Machine",
+      "description": "A production or auxiliary machine managed by the PM system.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier code for the machine." },
+        "name": { "type": "string", "description": "Human-readable name of the machine." },
+        "model": { "type": "string", "description": "Model or series specification." },
+        "installDate": { "type": "string", "description": "ISO date string of installation." },
+        "status": { "type": "string", "description": "Operation status." },
+        "healthScore": { "type": "integer", "description": "Calculated health score 0-100." },
+        "lastPM": { "type": "string", "description": "ISO date string of the last preventive maintenance." },
+        "nextPM": { "type": "string", "description": "ISO date string of the next scheduled PM." },
+        "pmInterval": { "type": "integer", "description": "Interval of PM in months." },
+        "temp": { "type": "number", "description": "Monitored temperature." },
+        "vibration": { "type": "number", "description": "Monitored vibration intensity." },
+        "updatedAt": { "type": "string", "description": "Timestamp of the last record update." }
+      },
+      "required": ["id", "name", "lastPM", "nextPM", "pmInterval"]
+    },
+    "maintenance_log": {
+      "title": "Maintenance Log",
+      "description": "Historical log of preventive or corrective maintenance services performed.",
+      "type": "object",
+      "properties": {
+        "machineId": { "type": "string", "description": "The linked machine's ID." },
+        "type": { "type": "string", "description": "Type of service e.g., 'PM' or 'Repair'." },
+        "date": { "type": "string", "description": "ISO date string of service completion." },
+        "technician": { "type": "string", "description": "Technician who did the service." },
+        "status": { "type": "string", "description": "Completed status." },
+        "notes": { "type": "string", "description": "Detailed notes on what was done." },
+        "parts": { "type": "string", "description": "Comma-separated list of spare parts used." },
+        "pmIntervalAtTime": { "type": "integer", "description": "PM cycle in months at the time of log creation." }
+      },
+      "required": ["machineId", "type", "date", "technician", "notes", "parts"]
+    },
+    "part": {
+      "title": "Part",
+      "description": "A spare part tracked in inventory.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the spare part." },
+        "code": { "type": "string", "description": "QR/Barcode of the part." },
+        "machine": { "type": "string", "description": "Machine compatibility." },
+        "location": { "type": "string", "description": "Storage location." },
+        "minStock": { "type": "integer", "description": "Minimum stock before warning alert." },
+        "unitPrice": { "type": "number", "description": "Price per unit." },
+        "brand": { "type": "string", "description": "Brand / Manufacturer of the spare part." },
+        "modelSerial": { "type": "string", "description": "Model or serial specification." },
+        "image": { "type": "string", "description": "Compressed base64 image string or URL." },
+        "stockIn": {
+          "type": "array",
+          "description": "List of ingestion transactions."
+        },
+        "stockOut": {
+          "type": "array",
+          "description": "List of usage/outflow transactions."
+        },
+        "createdAt": { "type": "string", "description": "Creation timestamp." },
+        "updatedAt": { "type": "string", "description": "Last update or activity timestamp." }
+      },
+      "required": ["name", "code", "machine", "location", "minStock", "unitPrice"]
+    }
+  },
+  "firestore": {
+    "artifacts/{appId}/public/data/tickets": {
+      "schema": "ticket",
+      "description": "Collection of maintenance tickets sorted by appId."
+    },
+    "artifacts/{appId}/public/data/assignments": {
+      "schema": "assignment",
+      "description": "Collection of work assignments allocated to technicians."
+    },
+    "artifacts/{appId}/public/data/machines": {
+      "schema": "machine",
+      "description": "Preventive maintenance database of production machines."
+    },
+    "artifacts/{appId}/public/data/maintenance_logs": {
+      "schema": "maintenance_log",
+      "description": "Historic ledger of maintenance activities."
+    },
+    "artifacts/{appId}/public/data/parts": {
+      "schema": "part",
+      "description": "Inventory of machine spare parts and transaction logs."
+    }
+  }
+}

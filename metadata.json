@@ -1,0 +1,6 @@
+{
+  "name": "Maintenance System",
+  "description": "A comprehensive, role-based maintenance management and tracking system with real-time ticket updates, technician dashboards, and performance analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
