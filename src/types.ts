@@ -75,3 +75,45 @@ export interface Assignment {
   createdAt: number;
   ticketId?: string;
 }
+
+export interface MaintenancePoint {
+  id: string;
+  pointName: string;
+  component: string;
+  actionRequired: string;
+  intervalMonths: number;
+  lastPM: string;
+  nextPM: string;
+  spareParts?: string;
+  notes?: string;
+}
+
+export interface Machine {
+  id: string;
+  name: string;
+  model: string;
+  installDate: string;
+  status: string;
+  healthScore: number;
+  lastPM: string;
+  nextPM: string;
+  pmInterval: number;
+  temp: number;
+  vibration: number;
+  updatedAt?: string;
+  subPoints?: MaintenancePoint[];
+}
+
+export interface MaintenanceLog {
+  id: string;
+  machineId: string;
+  type: string;
+  date: string;
+  technician: string;
+  status: string;
+  notes: string;
+  parts: string;
+  pmIntervalAtTime?: number;
+  subPointsServiced?: string;
+}
+

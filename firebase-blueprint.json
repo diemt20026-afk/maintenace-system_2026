@@ -73,7 +73,11 @@
         "pmInterval": { "type": "integer", "description": "Interval of PM in months." },
         "temp": { "type": "number", "description": "Monitored temperature." },
         "vibration": { "type": "number", "description": "Monitored vibration intensity." },
-        "updatedAt": { "type": "string", "description": "Timestamp of the last record update." }
+        "updatedAt": { "type": "string", "description": "Timestamp of the last record update." },
+        "subPoints": {
+          "type": "array",
+          "description": "List of sub-components or maintenance points with distinct PM cycles."
+        }
       },
       "required": ["id", "name", "lastPM", "nextPM", "pmInterval"]
     },
@@ -89,7 +93,8 @@
         "status": { "type": "string", "description": "Completed status." },
         "notes": { "type": "string", "description": "Detailed notes on what was done." },
         "parts": { "type": "string", "description": "Comma-separated list of spare parts used." },
-        "pmIntervalAtTime": { "type": "integer", "description": "PM cycle in months at the time of log creation." }
+        "pmIntervalAtTime": { "type": "integer", "description": "PM cycle in months at the time of log creation." },
+        "subPointsServiced": { "type": "string", "description": "Details or names of sub-points serviced." }
       },
       "required": ["machineId", "type", "date", "technician", "notes", "parts"]
     },
